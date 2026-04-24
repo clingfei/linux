@@ -36,6 +36,10 @@ tests-y += tests/boot
 tests-y += tests/disk-vfio-pci
 tests-y += tests/net-test
 tests-y += tests/config
+tests-y += tests/config-unit
+tests-y += tests/net-unit
+LDFLAGS_tests/config-unit-y += -Wl,--allow-multiple-definition
+LDFLAGS_tests/net-unit-y += -Wl,--allow-multiple-definition
 ifneq ($(LKL_HOST_CONFIG_BSD),y)
 tests-y += tests/test-dlmopen
 LDLIBS_tests/test-dlmopen-$(LKL_HOST_CONFIG_POSIX) += -ldl
