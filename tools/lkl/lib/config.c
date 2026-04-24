@@ -381,6 +381,18 @@ static int parse_mac_str(char *mac_str, __lkl__u8 mac[LKL_ETH_ALEN])
 	return 1;
 }
 
+static int mac_addr_is_set(const __lkl__u8 mac[LKL_ETH_ALEN])
+{
+	int i;
+
+	for (i = 0; i < LKL_ETH_ALEN; i++) {
+		if (mac[i] != 0)
+			return 1;
+	}
+
+	return 0;
+}
+
 /* Add permanent neighbor entries in the form of "ip|mac;ip|mac;..." */
 static void add_neighbor(int ifindex, char *entries)
 {
@@ -477,14 +489,22 @@ static void mount_cmds_exec(char *_cmds, int (*callback)(char *))
 static int lkl_config_netdev_create(struct lkl_config *cfg,
 				    struct lkl_config_iface *iface)
 {
-	int ret, offload = 0;
+	int ret, offload = 0, ifmac_set = 0;
 	struct lkl_netdev_args nd_args;
-	__lkl__u8 mac[LKL_ETH_ALEN] = {0};
+	__lkl__u8 ifmac[LKL_ETH_ALEN] = {0};
+	__lkl__u8 detected_mac[LKL_ETH_ALEN] = {0};
 	struct lkl_netdev *nd = NULL;
 
 	if (iface->ifoffload_str)
 		offload = strtol(iface->ifoffload_str, NULL, 0);
 	memset(&nd_args, 0, sizeof(struct lkl_netdev_args));
+
+	ret = parse_mac_str(iface->ifmac_str, ifmac);
+	if (ret < 0) {
+		lkl_printf("failed to parse mac\n");
+		return -1;
+	}
+	ifmac_set = ret > 0;
 
 	if (iface->iftap) {
 		lkl_printf("WARN: LKL_HIJACK_NET_TAP is now obsoleted.\n");
@@ -500,7 +520,7 @@ static int lkl_config_netdev_create(struct lkl_config *cfg,
 						       offload);
 		} else if ((strcmp(iface->iftype, "dpdk") == 0)) {
 			nd = lkl_netdev_dpdk_create(iface->ifparams, offload,
-						    mac);
+						    detected_mac);
 		} else if ((strcmp(iface->iftype, "pipe") == 0)) {
 			nd = lkl_netdev_pipe_create(iface->ifparams, offload);
 		} else {
@@ -520,22 +540,12 @@ static int lkl_config_netdev_create(struct lkl_config *cfg,
 	}
 
 	if (nd) {
-		if ((mac[0] != 0) || (mac[1] != 0) ||
-				(mac[2] != 0) || (mac[3] != 0) ||
-				(mac[4] != 0) || (mac[5] != 0)) {
-			nd_args.mac = mac;
-		} else {
-			ret = parse_mac_str(iface->ifmac_str, mac);
-
-			if (ret < 0) {
-				lkl_printf("failed to parse mac\n");
-				return -1;
-			} else if (ret > 0) {
-				nd_args.mac = mac;
-			} else {
-				nd_args.mac = NULL;
-			}
-		}
+		if (ifmac_set)
+			nd_args.mac = ifmac;
+		else if (mac_addr_is_set(detected_mac))
+			nd_args.mac = detected_mac;
+		else
+			nd_args.mac = NULL;
 
 		nd_args.offload = offload;
 		ret = lkl_netdev_add(nd, &nd_args);
