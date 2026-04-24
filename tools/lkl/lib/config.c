@@ -574,12 +574,17 @@ static int lkl_config_netdev_configure(struct lkl_config *cfg,
 
 	if (nd->id >= 0) {
 		nd_ifindex = lkl_netdev_get_ifindex(nd->id);
-		if (nd_ifindex > 0)
-			lkl_if_up(nd_ifindex);
-		else
+		if (nd_ifindex <= 0)
 			lkl_printf(
 				"failed to get ifindex for netdev id %d: %s\n",
 				nd->id, lkl_strerror(nd_ifindex));
+	}
+
+	if (nd_ifindex >= 0 && iface->ifmac_str && mac_addr_is_set(nd->mac)) {
+		ret = lkl_if_set_mac(nd_ifindex, nd->mac);
+		if (ret < 0)
+			lkl_printf("failed to set MAC address: %s\n",
+				   lkl_strerror(ret));
 	}
 
 	if (nd_ifindex >= 0 && iface->ifmtu_str) {
@@ -588,6 +593,13 @@ static int lkl_config_netdev_configure(struct lkl_config *cfg,
 		ret = lkl_if_set_mtu(nd_ifindex, mtu);
 		if (ret < 0)
 			lkl_printf("failed to set MTU: %s\n",
+				   lkl_strerror(ret));
+	}
+
+	if (nd_ifindex > 0) {
+		ret = lkl_if_up(nd_ifindex);
+		if (ret < 0)
+			lkl_printf("failed to bring interface up: %s\n",
 				   lkl_strerror(ret));
 	}
 

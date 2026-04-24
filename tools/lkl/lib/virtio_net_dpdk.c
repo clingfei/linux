@@ -315,6 +315,17 @@ static void dpdk_net_poll_hup(struct lkl_netdev *nd)
 	nd_dpdk->close = 1;
 }
 
+static int dpdk_net_set_mac(struct lkl_netdev *nd, const unsigned char *addr)
+{
+	struct lkl_netdev_dpdk *nd_dpdk =
+		container_of(nd, struct lkl_netdev_dpdk, dev);
+	struct ether_addr mac;
+
+	memcpy(&mac, addr, sizeof(mac));
+
+	return rte_eth_dev_default_mac_addr_set(nd_dpdk->portid, &mac);
+}
+
 static void dpdk_net_free(struct lkl_netdev *nd)
 {
 	struct lkl_netdev_dpdk *nd_dpdk =
@@ -328,6 +339,7 @@ struct lkl_dev_net_ops dpdk_net_ops = {
 	.rx = dpdk_net_rx,
 	.poll = dpdk_net_poll,
 	.poll_hup = dpdk_net_poll_hup,
+	.set_mac = dpdk_net_set_mac,
 	.free = dpdk_net_free,
 };
 
