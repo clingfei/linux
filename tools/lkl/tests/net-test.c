@@ -269,6 +269,48 @@ static int lkl_test_nd_ifindex(void)
 LKL_TEST_CALL(if_up, lkl_if_up, 0,
 	      cla.backend == BACKEND_NONE ? 1 : nd_ifindex);
 
+static int lkl_test_set_mac(void)
+{
+	struct lkl_ifreq ifr;
+	__lkl__u8 mac[LKL_ETH_ALEN] = {0, 0x02, 0, 0, 0, 0xcd};
+	int ret, sock;
+
+	if (cla.backend == BACKEND_NONE)
+		return TEST_SKIP;
+
+	ret = lkl_if_set_mac(nd_ifindex, mac);
+	if (ret < 0) {
+		lkl_test_logf("failed to set MAC address: %s\n",
+			      lkl_strerror(ret));
+		return TEST_BAILOUT;
+	}
+
+	sock = lkl_sys_socket(LKL_AF_INET, LKL_SOCK_DGRAM, 0);
+	if (sock < 0) {
+		lkl_test_logf("failed to open socket: %s\n",
+			      lkl_strerror(sock));
+		return TEST_BAILOUT;
+	}
+
+	memset(&ifr, 0, sizeof(ifr));
+	snprintf(ifr.lkl_ifr_name, sizeof(ifr.lkl_ifr_name), "eth%d", nd_id);
+
+	ret = lkl_sys_ioctl(sock, LKL_SIOCGIFHWADDR, (long)&ifr);
+	lkl_sys_close(sock);
+	if (ret < 0) {
+		lkl_test_logf("failed to read back MAC address: %s\n",
+			      lkl_strerror(ret));
+		return TEST_BAILOUT;
+	}
+
+	if (memcmp(ifr.lkl_ifr_hwaddr.sa_data, mac, LKL_ETH_ALEN) != 0) {
+		lkl_test_logf("configured MAC address does not match\n");
+		return TEST_FAILURE;
+	}
+
+	return TEST_SUCCESS;
+}
+
 static int lkl_test_set_ipv4(void)
 {
 	int ret;
@@ -308,6 +350,7 @@ struct lkl_test tests[] = {
 	LKL_TEST(nd_add),
 	LKL_TEST(start_kernel),
 	LKL_TEST(nd_ifindex),
+	LKL_TEST(set_mac),
 	LKL_TEST(if_up),
 	LKL_TEST(set_ipv4),
 	LKL_TEST(set_gateway),
