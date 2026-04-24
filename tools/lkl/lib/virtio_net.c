@@ -163,6 +163,22 @@ void poll_thread(void *arg)
 struct virtio_net_dev *registered_devs[MAX_NET_DEVS];
 static int registered_dev_idx = 0;
 
+struct lkl_netdev *lkl_netdev_get_by_ifindex(int ifindex)
+{
+	int i;
+
+	for (i = 0; i < registered_dev_idx; i++) {
+		struct virtio_net_dev *dev = registered_devs[i];
+
+		if (!dev)
+			continue;
+		if (lkl_netdev_get_ifindex(i) == ifindex)
+			return dev->nd;
+	}
+
+	return NULL;
+}
+
 static int dev_register(struct virtio_net_dev *dev)
 {
 	if (registered_dev_idx == MAX_NET_DEVS) {
@@ -225,6 +241,7 @@ int lkl_netdev_add(struct lkl_netdev *nd, struct lkl_netdev_args* args)
 		if (args->mac) {
 			dev->dev.device_features |= BIT(LKL_VIRTIO_NET_F_MAC);
 			memcpy(dev->config.mac, args->mac, LKL_ETH_ALEN);
+			memcpy(nd->mac, args->mac, LKL_ETH_ALEN);
 		}
 		dev->dev.device_features |= args->offload;
 
@@ -310,6 +327,7 @@ void lkl_netdev_remove(int id)
 	virtio_dev_cleanup(&dev->dev);
 
 	free_queue_locks(dev->queue_locks, NUM_QUEUES);
+	registered_devs[id] = NULL;
 	lkl_host_ops.mem_free(dev);
 }
 

@@ -7,6 +7,9 @@
 #include "endian.h"
 #include <lkl_host.h>
 
+/* Provided by virtio_net.c for host backend lookups from guest ifindex. */
+extern struct lkl_netdev *lkl_netdev_get_by_ifindex(int ifindex);
+
 #ifdef __MINGW32__
 int lkl_inet_pton(int af, const char *src, void *dst)
 {
@@ -144,6 +147,7 @@ int lkl_if_set_mtu(int ifindex, int mtu)
 int lkl_if_set_mac(int ifindex, void *addr)
 {
 	struct lkl_ifreq ifr;
+	struct lkl_netdev *nd;
 	int err, sock;
 
 	sock = lkl_sys_socket(LKL_AF_INET, LKL_SOCK_DGRAM, 0);
@@ -158,6 +162,14 @@ int lkl_if_set_mac(int ifindex, void *addr)
 	if (!err) {
 		memcpy(ifr.lkl_ifr_hwaddr.sa_data, addr, LKL_ETH_ALEN);
 		err = lkl_sys_ioctl(sock, LKL_SIOCSIFHWADDR, (long)&ifr);
+		if (!err) {
+			nd = lkl_netdev_get_by_ifindex(ifindex);
+			if (nd && nd->ops->set_mac) {
+				err = nd->ops->set_mac(nd, addr);
+				if (!err)
+					memcpy(nd->mac, addr, LKL_ETH_ALEN);
+			}
+		}
 	}
 
 out:

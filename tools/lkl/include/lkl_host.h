@@ -137,6 +137,16 @@ struct lkl_dev_net_ops {
 	void (*poll_hup)(struct lkl_netdev *nd);
 
 	/**
+	 * @set_mac: update the underlying device MAC address
+	 *
+	 * @nd - pointer to the network device
+	 * @addr - 6-byte MAC address
+	 *
+	 * @returns 0 on success or a negative value on error
+	 */
+	int (*set_mac)(struct lkl_netdev *nd, const unsigned char *addr);
+
+	/**
 	 * @free: frees a network device
 	 *
 	 * Implementation must release its resources and free the network device
