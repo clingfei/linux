@@ -125,6 +125,7 @@ config PCI
 	select GENERIC_PCI_IOMAP
 	select HAS_DMA
 	select ARCH_HAS_DMA_OPS
+	select PCI_MSI_ARCH_FALLBACKS if PCI_MSI
 	default y
 
 config LKL_PCI_KUNIT_TEST
@@ -138,6 +139,13 @@ config LKL_PCI_KUNIT_TEST
 	  paths through stub PCI host operations, and verify that coherent DMA
 	  memory returned to callers is unmapped and released using the correct
 	  CPU address.
+
+config LKL_PCI_MSI_KUNIT_TEST
+	bool "KUnit tests for LKL PCI MSI"
+	depends on KUNIT && PCI_MSI
+	default n
+	help
+	  KUnit tests for LKL's PCI MSI and MSI-X IRQ allocation hooks.
 
 config RAID6_PQ_BENCHMARK
 	bool
