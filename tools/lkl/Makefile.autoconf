@@ -250,8 +250,11 @@ endef
 
 define kunit_test_enable
   $(call set_autoconf_var,LKL_PCI_KUNIT_TEST,y)
+  $(call set_autoconf_var,LKL_PCI_MSI_KUNIT_TEST,y)
   $(call set_kernel_config,KUNIT,y)
   $(call set_kernel_config,LKL_PCI_KUNIT_TEST,y)
+  $(call set_kernel_config,PCI_MSI,y)
+  $(call set_kernel_config,LKL_PCI_MSI_KUNIT_TEST,y)
   $(if $(filter $(LD_FMT),$(KASAN_HOSTS)),$(call set_kernel_config,KASAN,y))
   $(if $(filter $(LD_FMT),$(KASAN_HOSTS)),$(call kasan_test_enable))
 endef

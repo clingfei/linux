@@ -156,6 +156,33 @@ int lkl_get_free_irq(const char *user)
 	return ret;
 }
 
+int lkl_get_free_irq_block(const char *user, int nr_irqs)
+{
+	int i, j;
+
+	if (nr_irqs <= 0 || nr_irqs >= NR_IRQS)
+		return -EINVAL;
+
+	for (i = 1; i + nr_irqs <= NR_IRQS; i++) {
+		for (j = 0; j < nr_irqs; j++)
+			if (irqs[i + j].user)
+				break;
+		if (j != nr_irqs)
+			continue;
+
+		for (j = 0; j < nr_irqs; j++) {
+			irqs[i + j].user = user;
+			if (lkl_is_running())
+				irq_set_chip_and_handler(i + j, &dummy_irq_chip,
+							 handle_simple_irq);
+		}
+
+		return i;
+	}
+
+	return -EBUSY;
+}
+
 void lkl_put_irq(int i, const char *user)
 {
 	if (!irqs[i].user || strcmp(irqs[i].user, user) != 0) {
@@ -164,6 +191,14 @@ void lkl_put_irq(int i, const char *user)
 	}
 
 	irqs[i].user = NULL;
+}
+
+void lkl_put_irq_block(int irq, int nr_irqs, const char *user)
+{
+	int i;
+
+	for (i = 0; i < nr_irqs; i++)
+		lkl_put_irq(irq + i, user);
 }
 
 unsigned long arch_local_save_flags(void)
