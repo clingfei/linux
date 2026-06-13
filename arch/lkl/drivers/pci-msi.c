@@ -5,6 +5,7 @@
 #include <linux/msi.h>
 #include <linux/pci.h>
 #include <linux/slab.h>
+#include <linux/bitfield.h>
 #include <asm/host_ops.h>
 #include <asm/irq.h>
 
@@ -27,9 +28,9 @@ static int lkl_pci_setup_msi_desc(struct msi_desc *desc, unsigned int irq)
 {
 	int i, ret;
 
-	irq_set_chip_and_handler(irq, &lkl_pci_msi_chip, handle_edge_irq);
-
 	for (i = 0; i < desc->nvec_used; i++) {
+		irq_set_chip_and_handler(irq + i, &lkl_pci_msi_chip,
+					 handle_edge_irq);
 		ret = irq_set_msi_desc_off(irq, i, desc);
 		if (ret) {
 			while (--i >= 0)
@@ -38,6 +39,31 @@ static int lkl_pci_setup_msi_desc(struct msi_desc *desc, unsigned int irq)
 			return ret;
 		}
 	}
+
+	return 0;
+}
+
+static int lkl_pci_enable_multi_msi(struct pci_dev *dev, struct msi_desc *desc)
+{
+	u16 control;
+	int ret;
+
+	ret = pci_read_config_word(dev, dev->msi_cap + PCI_MSI_FLAGS, &control);
+	if (ret)
+		return -EIO;
+
+	control &= ~PCI_MSI_FLAGS_QSIZE;
+	control |= FIELD_PREP(PCI_MSI_FLAGS_QSIZE,
+			      desc->pci.msi_attrib.multiple);
+
+	ret = pci_write_config_word(dev, dev->msi_cap + PCI_MSI_FLAGS, control);
+	if (ret)
+		return -EIO;
+
+	ret = pci_read_config_word(dev, dev->msi_cap + PCI_MSI_FLAGS, &control);
+	if (ret || FIELD_GET(PCI_MSI_FLAGS_QSIZE, control) !=
+		   desc->pci.msi_attrib.multiple)
+		return -EIO;
 
 	return 0;
 }
@@ -83,6 +109,16 @@ static int lkl_pci_setup_msi_irqs(struct pci_dev *dev, int nvec)
 					 nvec, irqs);
 	if (ret)
 		goto err_clear_desc;
+
+	/*
+	 * VFIO only accepts an MME value after VFIO_DEVICE_SET_IRQS has
+	 * established the available MSI vector count.
+	 */
+	ret = lkl_pci_enable_multi_msi(dev, desc);
+	if (ret) {
+		lkl_ops->pci_ops->msi_teardown(dev->sysdata, LKL_PCI_IRQ_MSI);
+		goto err_clear_desc;
+	}
 
 	kfree(irqs);
 	return 0;
