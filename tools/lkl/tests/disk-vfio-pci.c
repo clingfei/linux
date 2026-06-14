@@ -90,7 +90,7 @@ int main(int argc, const char **argv)
 		return -1;
 
 	snprintf(bootparams, sizeof(bootparams),
-		 "mem=16M loglevel=8 lkl_pci=vfio%s", cla.pciname);
+		 "mem=128M loglevel=8 lkl_pci=vfio%s", cla.pciname);
 
 	lkl_host_ops.print = lkl_test_log;
 
