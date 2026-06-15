@@ -15,6 +15,11 @@ chpasswd: { expire: False }
 groups: sudo
 ssh_pwauth: True
 shell: /bin/bash
+write_files:
+  - path: /etc/security/limits.d/99-lkl.conf
+    content: |
+      lkl soft memlock unlimited
+      lkl hard memlock unlimited
 EOF
 cloud-localds cloud.img cloud.txt
 rm cloud.txt

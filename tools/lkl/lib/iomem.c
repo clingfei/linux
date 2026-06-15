@@ -56,13 +56,14 @@ void unregister_iomem(void *base)
 void *lkl_ioremap(long addr, int size)
 {
 	int index = IOMEM_ADDR_TO_INDEX(addr);
+	int offset = IOMEM_ADDR_TO_OFFSET(addr);
 	struct iomem_region *iomem = &iomem_regions[index];
 
 	if (index >= MAX_IOMEM_REGIONS)
 		return NULL;
 
-	if (iomem->ops && size <= iomem->size)
-		return IOMEM_INDEX_TO_ADDR(index);
+	if (iomem->ops && offset + size <= iomem->size)
+		return (void *)addr;
 
 	return NULL;
 }

@@ -6,6 +6,8 @@
 
 void run_irqs(void);
 void set_irq_pending(int irq);
+int lkl_get_free_irq_block(const char *user, int nr_irqs);
+void lkl_put_irq_block(int irq, int nr_irqs, const char *user);
 
 #include <uapi/asm/irq.h>
 
