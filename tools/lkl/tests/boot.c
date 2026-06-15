@@ -688,10 +688,11 @@ static int lkl_test_kunit_pci(void)
 	char *log = strdup(boot_log);
 	char *line = NULL;
 	int n;
+	char c;
 
 	line = strtok(log, "\n");
 	while (line) {
-		if (sscanf(line, "[ %*f] ok %d lkl_pci", &n) == 1) {
+		if (sscanf(line, "[ %*f] ok %d lkl_pci%c", &n, &c) == 1) {
 			lkl_test_logf("%s", line);
 			free(log);
 			return TEST_SUCCESS;
@@ -705,6 +706,31 @@ static int lkl_test_kunit_pci(void)
 	return TEST_FAILURE;
 }
 #endif // LKL_HOST_CONFIG_LKL_PCI_KUNIT_TEST
+
+#ifdef LKL_HOST_CONFIG_LKL_PCI_MSI_KUNIT_TEST
+static int lkl_test_kunit_pci_msi(void)
+{
+	char *log = strdup(boot_log);
+	char *line = NULL;
+	int n;
+	char c;
+
+	line = strtok(log, "\n");
+	while (line) {
+		if (sscanf(line, "[ %*f] ok %d lkl_pci_msi%c", &n, &c) == 1) {
+			lkl_test_logf("%s", line);
+			free(log);
+			return TEST_SUCCESS;
+		}
+
+		line = strtok(NULL, "\n");
+	}
+
+	free(log);
+
+	return TEST_FAILURE;
+}
+#endif // LKL_HOST_CONFIG_LKL_PCI_MSI_KUNIT_TEST
 
 #define CMD_LINE "mem=32M loglevel=8 "
 
@@ -778,6 +804,9 @@ struct lkl_test tests[] = {
 #endif
 #ifdef LKL_HOST_CONFIG_LKL_PCI_KUNIT_TEST
 	LKL_TEST(kunit_pci),
+#endif
+#ifdef LKL_HOST_CONFIG_LKL_PCI_MSI_KUNIT_TEST
+	LKL_TEST(kunit_pci_msi),
 #endif
 	LKL_TEST(stop_kernel),
 };

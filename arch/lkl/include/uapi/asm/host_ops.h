@@ -11,6 +11,11 @@ struct lkl_jmp_buf {
 };
 struct lkl_pci_dev;
 
+enum lkl_pci_irq_type {
+	LKL_PCI_IRQ_MSI = 1,
+	LKL_PCI_IRQ_MSIX = 2,
+};
+
 /**
  * lkl_dev_pci_ops - PCI host operations
  *
@@ -20,6 +25,10 @@ struct lkl_pci_dev;
  * @add - add a new PCI device; returns a handler or NULL if fails
  * @remove - release resources
  * @init_irq - allocate resources for interrupts
+ * @msi_init - allocate resources for MSI/MSI-X interrupts. @irqs contains
+ *             one LKL IRQ per hardware vector, with non-positive entries left
+ *             unassigned.
+ * @msi_teardown - release MSI/MSI-X interrupt resources
  * @read - read the PCI Configuration Space
  * @write - write the PCI Configuration Space
  * @resource_alloc - map BARx and return the mapped address. x is resource_index
@@ -33,6 +42,9 @@ struct lkl_dev_pci_ops {
 				   unsigned long ram_size);
 	void (*remove)(struct lkl_pci_dev *dev);
 	int (*irq_init)(struct lkl_pci_dev *dev, int irq);
+	int (*msi_init)(struct lkl_pci_dev *dev, int type, int nvec,
+			int *irqs);
+	void (*msi_teardown)(struct lkl_pci_dev *dev, int type);
 	int (*read)(struct lkl_pci_dev *dev, int where, int size, void *val);
 	int (*write)(struct lkl_pci_dev *dev, int where, int size, void *val);
 	void *(*resource_alloc)(struct lkl_pci_dev *dev,
