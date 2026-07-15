@@ -45,7 +45,7 @@ static void gameport_attach_driver(struct gameport_driver *drv);
 static void gameport_reconnect_port(struct gameport *gameport);
 static void gameport_disconnect_port(struct gameport *gameport);
 
-#if defined(__i386__)
+#if defined(__i386__) || defined(__x86_64__)
 
 #include <linux/i8253.h>
 
@@ -108,7 +108,7 @@ static int gameport_measure_speed(struct gameport *gameport)
 
 static int old_gameport_measure_speed(struct gameport *gameport)
 {
-#if defined(__i386__)
+#if defined(__i386__) || defined(__x86_64__)
 
 	unsigned int i, t, t1, t2, t3, tx;
 	unsigned long flags;
@@ -131,30 +131,6 @@ static int old_gameport_measure_speed(struct gameport *gameport)
 
 	gameport_close(gameport);
 	return 59659 / (tx < 1 ? 1 : tx);
-
-#elif defined (__x86_64__)
-
-	unsigned int i, t;
-	unsigned long tx, t1, t2, flags;
-
-	if (gameport_open(gameport, NULL, GAMEPORT_MODE_RAW))
-		return 0;
-
-	tx = 1 << 30;
-
-	for(i = 0; i < 50; i++) {
-		local_irq_save(flags);
-		t1 = rdtsc();
-		for (t = 0; t < 50; t++) gameport_read(gameport);
-		t2 = rdtsc();
-		local_irq_restore(flags);
-		udelay(i * 10);
-		if (t2 - t1 < tx) tx = t2 - t1;
-	}
-
-	gameport_close(gameport);
-	return (this_cpu_read(cpu_info.loops_per_jiffy) *
-		(unsigned long)HZ / (1000 / 50)) / (tx < 1 ? 1 : tx);
 
 #else
 
