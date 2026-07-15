@@ -4,6 +4,8 @@
 #define IRQ_STATUS_BITS		(sizeof(long) * 8)
 #define NR_IRQS			((int)(IRQ_STATUS_BITS * IRQ_STATUS_BITS))
 
+#include <asm-generic/irq.h>
+
 void run_irqs(void);
 void set_irq_pending(int irq);
 int lkl_get_free_irq_block(const char *user, int nr_irqs);
