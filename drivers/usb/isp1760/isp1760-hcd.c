@@ -621,7 +621,7 @@ static void alloc_mem(struct usb_hcd *hcd, struct isp1760_qtd *qtd)
 	}
 }
 
-static void free_mem(struct usb_hcd *hcd, struct isp1760_qtd *qtd)
+static void isp1760_free_mem(struct usb_hcd *hcd, struct isp1760_qtd *qtd)
 {
 	struct isp1760_hcd *priv = hcd_to_priv(hcd);
 	const struct isp1760_memory_layout *mem = priv->memory_layout;
@@ -1092,7 +1092,7 @@ static void collect_qtds(struct usb_hcd *hcd, struct isp1760_qh *qh,
 		}
 
 		if (qtd->payload_addr)
-			free_mem(hcd, qtd);
+			isp1760_free_mem(hcd, qtd);
 
 		if (last_qtd) {
 			if ((qtd->status == QTD_RETIRE) &&
