@@ -72,6 +72,11 @@ void free_initmem(void)
 {
 }
 
+unsigned long lkl_get_internal_memory_size(void)
+{
+	return mem_size;
+}
+
 void free_mem(void)
 {
 	if (lkl_ops->page_free)

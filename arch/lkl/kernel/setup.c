@@ -5,10 +5,14 @@
 #include <linux/reboot.h>
 #include <linux/fs.h>
 #include <linux/start_kernel.h>
+#include <linux/mm.h>
+#include <linux/overflow.h>
 #include <linux/syscalls.h>
+#include <linux/sysinfo.h>
 #include <linux/tick.h>
 #include <asm/host_ops.h>
 #include <asm/irq.h>
+#include <asm/page.h>
 #include <asm/unistd.h>
 #include <asm/setup.h>
 #include <asm/syscalls.h>
@@ -76,6 +80,51 @@ static inline __init void cmd_line_append(const char *fmt, ...)
 	va_end(ap);
 }
 
+static void __init lkl_report_memory(void)
+{
+	struct sysinfo info = { 0 };
+	u64 image_size = (unsigned long)__lkl_image_size;
+	u64 internal_size = lkl_get_internal_memory_size();
+	u64 managed_size;
+	u64 free_size;
+	u64 reserved_size;
+	u64 managed_used;
+	u64 ram_used;
+	u64 total_used;
+
+	si_meminfo(&info);
+	if (!info.mem_unit ||
+	    check_mul_overflow((u64)info.totalram, (u64)info.mem_unit,
+			       &managed_size) ||
+	    check_mul_overflow((u64)info.freeram, (u64)info.mem_unit,
+			       &free_size) ||
+	    free_size > managed_size || managed_size > internal_size) {
+		pr_warn("LKL memory accounting failed\n");
+		return;
+	}
+
+	reserved_size = internal_size - managed_size;
+	managed_used = managed_size - free_size;
+	ram_used = reserved_size + managed_used;
+	if (check_add_overflow(image_size, ram_used, &total_used)) {
+		pr_warn("LKL memory accounting overflow\n");
+		return;
+	}
+
+	pr_info("LKL memory after boot: image_bytes=%llu internal_ram_bytes=%llu reserved_ram_bytes=%llu managed_used_bytes=%llu free_ram_bytes=%llu ram_used_bytes=%llu total_used_bytes=%llu\n",
+		(unsigned long long)image_size,
+		(unsigned long long)internal_size,
+		(unsigned long long)reserved_size,
+		(unsigned long long)managed_used,
+		(unsigned long long)free_size,
+		(unsigned long long)ram_used,
+		(unsigned long long)total_used);
+	pr_info("LKL memory KiB: image=%llu ram_used=%llu total=%llu\n",
+		(unsigned long long)(image_size >> 10),
+		(unsigned long long)(ram_used >> 10),
+		(unsigned long long)(total_used >> 10));
+}
+
 int __init lkl_start_kernel(const char *fmt, ...)
 {
 	int ret;
@@ -111,8 +160,9 @@ int __init lkl_start_kernel(const char *fmt, ...)
 	current_thread_info()->tid = lkl_ops->thread_self();
 	lkl_cpu_change_owner(current_thread_info()->tid);
 
-	lkl_cpu_put();
 	is_running = 1;
+	lkl_report_memory();
+	lkl_cpu_put();
 
 	return 0;
 

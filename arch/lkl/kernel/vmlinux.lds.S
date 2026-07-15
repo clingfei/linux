@@ -65,8 +65,26 @@ SECTIONS
 	__end_ro_after_init = .;
 	NOTES
 
+	/* Name relocation-backed data explicitly so SIZEOF() can account for it. */
+	.data.rel.ro.local : { *(.data.rel.ro.local .data.rel.ro.local.*) }
+	.data.rel.ro : { *(.data.rel.ro .data.rel.ro.*) }
+	.data.rel.local : { *(.data.rel.local .data.rel.local.*) }
+	.data.rel : { *(.data.rel .data.rel.*) }
+
 	BSS_SECTION(0, 0, 0)
 	_end = .;
+
+	/* Allocated lkl.o contents; debug and relocation metadata are excluded. */
+	__lkl_image_size = ABSOLUTE(SIZEOF(.text) +
+		SIZEOF(.init.data) + SIZEOF(.data..percpu) +
+		SIZEOF(.rodata) + SIZEOF(.pci_fixup) +
+		SIZEOF(__ksymtab) + SIZEOF(__ksymtab_gpl) +
+		SIZEOF(__kcrctab) + SIZEOF(__kcrctab_gpl) +
+		SIZEOF(__param) + SIZEOF(__modver) + SIZEOF(.notes) +
+		SIZEOF(.data) + SIZEOF(.data..ro_after_init) +
+		SIZEOF(__ex_table) + SIZEOF(.data.rel.ro.local) +
+		SIZEOF(.data.rel.ro) + SIZEOF(.data.rel.local) +
+		SIZEOF(.data.rel) + SIZEOF(.bss));
 
 	STABS_DEBUG
 	DWARF_DEBUG

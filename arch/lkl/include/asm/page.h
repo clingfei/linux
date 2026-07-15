@@ -10,7 +10,9 @@
 #endif // CONFIG_MMU
 
 #ifndef __ASSEMBLY__
+extern char __lkl_image_size[];
 void free_mem(void);
+unsigned long lkl_get_internal_memory_size(void);
 void bootmem_init(unsigned long mem_size);
 #endif
 

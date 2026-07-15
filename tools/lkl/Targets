@@ -33,6 +33,7 @@ LDLIBS_cptofs-$(LKL_HOST_CONFIG_NEEDS_LARGP) += -largp
 tests-priv-y := tests/tests-common
 tests-y := tests/disk
 tests-y += tests/boot
+tests-y += tests/memory-report
 ifneq ($(LKL_HOST_CONFIG_BSD),y)
 tests-y += tests/disk-vfio-pci
 endif
