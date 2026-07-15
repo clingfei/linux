@@ -22,7 +22,7 @@ __SYSCALL(__NR_new_thread_group_leader, sys_new_thread_group_leader)
 
 #define __SYSCALL_DEFINE_ARCH(x, name, ...)				\
 	asm(".section .syscall_defs,\"" SECTION_ATTRS "\"\n"		\
-	    ".ascii \"#ifdef __NR" #name "\\n\"\n"			\
+	    ".ascii \"#ifdef __lkl__NR" #name "\\n\"\n"			\
 	    ".ascii \"SYSCALL_DEFINE" #x "(" #name ","			\
 	    __ASCII_MAP(x, __SC_ASCII, __VA_ARGS__) ")\\n\"\n"		\
 	    ".ascii \"#endif\\n\"\n"					\
